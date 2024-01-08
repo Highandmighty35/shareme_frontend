@@ -1,8 +1,8 @@
 import React from "react";
-import { jwtDecode } from "jwt-decode";
-import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
-import { FcGoogle } from "react-icons/fc";
+import { GoogleLogin, googleLogout } from "@react-oauth/google";
+import { jwtDecode } from "jwt-decode";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import shareVideo from "../assets/share.mp4";
 import logo from "../assets/logowhite.png";
 
@@ -10,21 +10,21 @@ import { client } from "../client";
 
 const Login = () => {
   const navigate = useNavigate();
-  const createOrGetUser = async (response) => {
+  const createOrGetUser = (response) => {
     const decoded = jwtDecode(response.credential);
     console.log(decoded);
-    localStorage.setItem("user", JSON.stringify(decoded));
-    const { name, picture, sub } = decoded;
+    localStorage.setItem("uid", decoded.sub);
     const doc = {
-      _id: sub,
+      _id: decoded.sub,
       _type: "user",
-      userName: name,
-      image: picture,
+      userName: decoded.name,
+      image: decoded.picture,
     };
 
     client.createIfNotExists(doc).then(() => {
       navigate("/", { replace: true });
     });
+    console.log(doc);
   };
 
   return (
@@ -39,29 +39,20 @@ const Login = () => {
           autoPlay
           className="w-full h-full object-cover"
         />
-
         <div className="absolute flex flex-col justify-center items-center top-0 right-0 left-0 bottom-0 bg-blackOverlay">
           <div className="p-5">
             <img src={logo} width="130px" alt="logo" />
           </div>
-
           <div className="shadow-2xl">
-            <GoogleLogin
-              clientId={process.env.REACT_APP_GOOGLE_API_TOKEN}
-              render={(renderProps) => (
-                <button
-                  type="button"
-                  className="bg-mainColor flex justify-center items-center p-3 rounded-lg curser-pointer outline-none"
-                  onClick={renderProps.onClick}
-                  disabled={renderProps.disabled}
-                >
-                  <FcGoogle className="mr-4" /> Sign in with Google
-                </button>
-              )}
-              onSuccess={createOrGetUser}
-              onFailure={createOrGetUser}
-              cookiePolicy="single_host_origin"
-            />
+            <GoogleOAuthProvider
+              clientId={`${process.env.REACT_APP_GOOGLE_API_TOKEN}`}
+            >
+              <GoogleLogin
+                onSuccess={createOrGetUser}
+                onFailure={createOrGetUser}
+                cookiePolicy="single_host_origin"
+              />
+            </GoogleOAuthProvider>
           </div>
         </div>
       </div>
